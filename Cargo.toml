@@ -1,0 +1,6 @@
+[workspace]
+members=[
+  "pf_ndk_macro",
+  "pf_ndk_examples",
+  "pf_ndk_glue",
+]
