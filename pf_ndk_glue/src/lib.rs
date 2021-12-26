@@ -11,16 +11,17 @@ use std::os::unix::prelude::RawFd;
 use ndk_sys::{ANativeActivity,AInputQueue,ARect,ANativeWindow};
 use std::ptr::NonNull;
 use std::os::raw::c_void;
+use std::sync::{Condvar,Mutex,Arc};
 
 pub use pf_ndk_macro::main;
 
-mod app;
+pub mod app;
 
 pub unsafe  fn init(
     activity: *mut ndk_sys::ANativeActivity,
     _saved_state: *mut u8,
     _saved_state_size: usize,
-    main: fn(),
+    main: fn(Arc<(Mutex<app::AndroidApp>,Condvar)>),
     ){
     info!("activity {:?}",activity);
 
@@ -71,7 +72,7 @@ pub unsafe  fn init(
     // }
     
     // {
-    let (app_mutex,cond )= &*app::android_app_create(activity,_saved_state,_saved_state_size);
+    let (app_mutex,cond )= &*app::android_app_create(activity,_saved_state,_saved_state_size,main);
     // activity.as_mut().instance =  app as *mut _ as *mut c_void ;
     info!("wating app to be running");
     let mut app =app_mutex.lock().unwrap();

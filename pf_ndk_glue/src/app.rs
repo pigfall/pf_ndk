@@ -36,7 +36,7 @@ impl AndroidApp {
 
 }
 
-pub unsafe fn android_app_create(activity: NonNull<ANativeActivity>,saved_state : *mut u8,saved_state_size:usize)->Arc<(Mutex<AndroidApp>,Condvar)>{
+pub unsafe fn android_app_create(activity: NonNull<ANativeActivity>,saved_state : *mut u8,saved_state_size:usize,main :fn(Arc<(Mutex<AndroidApp>,Condvar)>))->Arc<(Mutex<AndroidApp>,Condvar)>{
 
     let mut app = AndroidApp::new(activity);
     if !saved_state.is_null() {
@@ -53,14 +53,20 @@ pub unsafe fn android_app_create(activity: NonNull<ANativeActivity>,saved_state 
     //{
     let mut app_for_entry = Arc::clone(&arc_app_cond) ;
     thread::spawn(move ||{
-        android_app_entry(app_for_entry);
+        android_app_entry(app_for_entry,main);
     });
     //}
 
     return arc_app_cond;
 }
 
-pub fn android_app_entry(arc_app_cond: Arc<(Mutex< AndroidApp>,Condvar)>){
+pub fn android_app_entry(arc_app_cond: Arc<(Mutex< AndroidApp>,Condvar)>,main:fn(Arc<(Mutex<AndroidApp>,Condvar)>)){
+    android_app_entry_init_looper(arc_app_cond.clone());
+     main(arc_app_cond.clone());
+}
+
+
+pub fn android_app_entry_init_looper(arc_app_cond: Arc<(Mutex< AndroidApp>,Condvar)>){
     let (app_mutex , cond)= &*arc_app_cond;
     let mut app = app_mutex.lock().unwrap();
     info!("android_app_entry {:?}",app);
@@ -85,8 +91,8 @@ pub fn android_app_entry(arc_app_cond: Arc<(Mutex< AndroidApp>,Condvar)>){
     info!("sleeping");
     thread::sleep(std::time::Duration::from_millis(3000));
     cond.notify_all();
-
 }
+
 
 #[derive(Debug)]
 struct AndroidPollSource {

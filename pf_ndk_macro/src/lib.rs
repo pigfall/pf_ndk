@@ -6,10 +6,12 @@ use syn::{parse_macro_input, ItemFn};
 pub fn main(attr: TokenStream,item_input: TokenStream)->TokenStream{
     let item_ast = parse_macro_input!(item_input as ItemFn);
     let f_name = &item_ast.sig.ident;
+    quote!{
+        panic!("itemfn {:?}",#f_name);
+    };
     let tk_stream = quote!{
         pub fn expand_run(){
             println!("insert by macro");
-            #f_name();
         }
 
         #[no_mangle]
