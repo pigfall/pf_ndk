@@ -25,6 +25,12 @@ pub fn main(attr: TokenStream,item_input: TokenStream)->TokenStream{
                 .with_tag("mytag")
                 );
             info!("ANativeActivity_onCreate");
+            pf_ndk_glue::init(
+                    activity as _,
+                    saved_state as _,
+                    saved_state_size as _,
+                    #f_name,
+                );
         }
 
         #item_ast
