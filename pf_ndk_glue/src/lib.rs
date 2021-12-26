@@ -10,8 +10,11 @@ use std::os::unix::io::FromRawFd;
 use std::os::unix::prelude::RawFd;
 use ndk_sys::{ANativeActivity,AInputQueue,ARect,ANativeWindow};
 use std::ptr::NonNull;
+use std::os::raw::c_void;
 
 pub use pf_ndk_macro::main;
+
+mod app;
 
 pub unsafe  fn init(
     activity: *mut ndk_sys::ANativeActivity,
@@ -66,6 +69,19 @@ pub unsafe  fn init(
     callbacks.onConfigurationChanged = Some(on_configuration_changed);
     callbacks.onLowMemory = Some(on_low_memory);
     // }
+    
+    // {
+    let (app_mutex,cond )= &*app::android_app_create(activity,_saved_state,_saved_state_size);
+    // activity.as_mut().instance =  app as *mut _ as *mut c_void ;
+    info!("wating app to be running");
+    let mut app =app_mutex.lock().unwrap();
+    // As long as the value inside the `Mutex<bool>` is `false`, we wait.
+    while !app.running {
+        app = cond.wait(app).unwrap();
+    }
+    // }
+    
+    info!("onCreate over");
 }
 
 unsafe extern "C" fn on_start(activity: *mut ANativeActivity){
@@ -103,7 +119,7 @@ unsafe extern "C" fn on_window_focus_changed(
 }
 
 unsafe extern "C" fn on_window_created(activity: *mut ANativeActivity,window: *mut ANativeWindow){
-    info!("on_window_created");
+    info!("on_window_created {:?}",window);
 }
 
 unsafe extern "C" fn on_window_resized(activity: *mut ANativeActivity,window :*mut ANativeWindow){
